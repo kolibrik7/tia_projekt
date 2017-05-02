@@ -1,0 +1,41 @@
+{% load staticfiles %}
+<html>
+<head>
+	<link rel="stylesheet" href="{% static 'koncerty/css/styl.css' %}">
+	<title>{% block title %}{% endblock %}</title>
+	
+</head>
+
+<body>
+	<div id="zaklad">
+		<h1>Projekt - manažovanie koncertov</h1>
+		{% if user.is_authenticated %}
+			<p>Je prihlásený používateľ {{ user.username }}.</p>
+		{% else %}
+			<p>Nikto nie je prihlásený.</p>
+		{% endif %}
+	</div>
+	<nav>
+		<a href="{% url 'index' %}">Hlavná stránka</a> | 
+		<a href="{% url 'zoznam' %}">Zoznam koncertov</a>
+		{% if user.is_authenticated %}
+			 | <a href="{% url 'pridanie_koncertu' %}">Pridať koncert</a>
+		{% endif %}
+		<br>
+		{% if not user.is_authenticated %}
+			<a href="{% url 'registracia' %}">Registrácia</a> | 
+			<a href="{% url 'login' %}">Prihlásiť sa</a> | 
+		{% else %}
+			<a href="{% url 'logout' %}">Odhlásiť sa</a>
+		{% endif %}
+	</nav><br>
+	<div>
+		{% block content %}
+		{% endblock %}
+	</div>
+
+	<script src="{% static 'koncerty/js/jquery-3.2.1.min.js' %}"></script>
+	{% block javascript %}
+	{% endblock %}
+</body>
+</html>
