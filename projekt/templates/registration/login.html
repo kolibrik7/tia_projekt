@@ -1,0 +1,19 @@
+{% extends 'projekt/base.html' %}
+
+{% block title %}
+	Prihlásenie
+{% endblock %}
+
+{% block content %}
+
+	{% if form.errors %}
+		<p>Nesprávne meno alebo heslo.</p>
+	{% endif %}
+
+	<form method="post">
+	{% csrf_token %}
+	{{ form.as_p }}
+	<input type="submit" value="Prihlásiť sa" />
+	</form>
+
+{% endblock %}
