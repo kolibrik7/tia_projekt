@@ -1,0 +1,61 @@
+{% extends 'projekt/base.html' %}
+
+{% block title %}
+	Zoznam koncertov
+{% endblock %}
+
+{% block content %}
+
+	{% if concert_list %}
+
+		<table id="zoznam" class="tablesorter">
+		<thead>
+		<tr>
+			<th>Headliner</th>
+			<th>Predkapely</th>
+			<th>Mesto</th>
+			<th>Klub/aréna</th>
+			<th>Dátum</th>
+			<th>Čas</th>
+		</tr>
+		</thead>
+		<tbody>
+		{% for concert in concert_list %}
+			<tr>
+				<td>
+				{% if user.is_authenticated %}
+					<a href="{% url 'detail' concert.id %}">{{ concert.headliner }}</a>
+				{% else %}
+					{{ concert.headliner }}
+				{% endif %}
+				</td>
+				{% if concert.support_bands == None or concert.support_bands == "None" or concert.support_bands == "" %}
+				<td>--</td>
+				{% else %}
+				<td>{{ concert.support_bands }}</td>
+				{% endif %}
+				<td>{{ concert.city }}</td>
+				<td>{{ concert.venue }}</td> 
+				<td>{{ concert.date|date:"d.m.Y" }}</td>
+				<td>{{ concert.time }}</td>
+			</tr>
+		{% endfor %}
+		</tbody>
+		</table>
+	{% else %}
+		<p>Žiadne koncerty v databáze.</p>
+	{% endif %}
+
+{% endblock %}
+
+{% block javascript %}
+	{% load staticfiles %}
+	<script type="text/javascript" src="{% static 'koncerty/js/jquery-latest.js' %}"></script>
+	<script type="text/javascript" src="{% static 'koncerty/js/jquery.tablesorter.js' %}"></script>
+	<script>
+	$(document).ready(function() {
+		$("#zoznam").tablesorter();
+		
+	});
+	</script>
+{% endblock %}

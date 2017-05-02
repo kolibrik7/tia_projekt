@@ -1,0 +1,201 @@
+{% extends 'projekt/base.html' %}
+
+{% block title %}
+	Koncert {{ concert.bands }}
+{% endblock %}
+
+{% block content %}
+	<div class="detail">
+		<h1>Koncert {{ concert.bands }}</h1>
+		<p>
+			Headliner: {{ concert.headliner }}<br>
+			Predkapely: {% if concert.support_bands == None or concert.support_bands == "None" or concert.support_bands == "" %}<br>
+			{% else %}
+				{{ concert.support_bands }}<br>
+			{% endif %}
+			Miesto: {{ concert.city }}, {{ concert.venue }}<br>
+			Dátum a čas: {{ concert.date }}, {{ concert.time }}
+		</p>
+	</div>
+	
+	{% if concert.concert_type == False %}
+		<div class="detail">
+			Koncertu sa zúčastnia:<br>
+			<ul id="attendees_list">
+				{% for a in attendees %}
+					<li id="{{ a }}">{{ a }}</li>
+				{% endfor %}
+			</ul>
+		</div>
+
+		<div class="detail">
+			<div id="odhlasenie">
+				<h3>Odhlasovanie z koncertu</h3>
+				<form method="post" id="odhlasenie_form">
+					{% csrf_token %}
+					<input type="hidden" value="{{ user.id }}" name="user_id">
+					<input type="submit" value="Odhlásiť z koncertu" name="odhlasenie">
+				</form>
+			</div>
+
+			<div id="prihlasenie">
+				<h3>Prihlasovanie na koncert</h3>
+				<form method="post" id="prihlasenie_form">
+					{% csrf_token %}
+					<input type="hidden" value="{{ user.id }}" name="user_id">
+					<input type="submit" value="Zúčastnim sa koncertu" name="prihlasenie">
+				</form>
+			</div>
+		</div>
+
+		<div class="detail">
+			<p>
+				<form method="post" id="transfer">
+					{% csrf_token %}
+					<input type="hidden" value="{{ user.id }}" name="driver">
+					<div>
+						<label for="seats">Počet voľných miest:</label>
+						<input type="number" id="seats" min="1" max="6" name="seats_provided">
+					</div>
+					<div>
+						<input type="submit" value="Ponúknuť odvoz na koncert" name="odvoz">
+					</div>
+				</form>
+			</p>
+		</div>
+
+		<div class="detail">
+			<h3>Ponúknuté odvozy</h3>
+			<p>
+				{% for t in transfers %}
+					<div id="transfer">
+						Vodič: {{ t.driver|stringformat:"s" }}<br>
+						Počet voľných miest: <span id="seats">{{ t.seats_available }}</span><br>
+						Prihlásení používatelia: {{ t.passengers.all|join:", " }}<br>
+						{% if t.seats_available > 0 and t.driver != user and user not in t.passengers.all %}
+							<div id="odvoz_prihlasenie_form">
+								<form method="post">
+									{% csrf_token %}
+									<input type="hidden" value="{{ user.id }}" name="passenger">
+									<input type="hidden" value="{{ t.id }}" name="transfer_id">
+									<input type="submit" value="Prihlásiť sa na odvoz" name="odvoz_prihlasenie">
+								</form><br>
+							</div>
+						{% endif %}
+						{% if t.driver != user and user in t.passengers.all %}
+							<div id="odvoz_odhlasenie_form">
+							<form method="post">
+								{% csrf_token %}
+								<input type="hidden" value="{{ user.id }}" name="passenger">
+								<input type="hidden" value="{{ t.id }}" name="transfer_id">
+								<input type="submit" value="Odhlásiť sa z odvozu" name="odvoz_odhlasenie">
+							</form>
+							</div>
+						{% endif %}
+					</div>
+				{% endfor %}
+			</p>
+		</div>
+	{% endif %}
+
+	
+	{% if concert.concert_type == True %}
+		<div class="detail">
+			Koncertu sa zúčastnili:<br>
+			<ul id="attendees_list">
+				{% for a in attendees %}
+					<li id="{{ a }}">{{ a }}</li>
+				{% endfor %}
+			</ul>
+		</div>
+
+		<div class="detail">
+			<button id="add_review_button">Pridať recenziu</button>
+			<div id="add_review">
+				<h3>Napíšte svoj pohľad na koncert</h3>
+				<p>
+				<form method="post" id="recenzia_form">
+					{% csrf_token %}
+					<input type="hidden" value="{{ user.id }}" name="user_id">
+					<textarea name="text_recenzie" rows="10" cols="80" required></textarea><br><br>
+					<input type="submit" value="Odoslať recenziu" name="recenzia">
+				</form>
+				</p>
+			</div>
+		</div>
+
+		<div class="detail">
+			<h3>Napísali o koncerte</h3>
+			<div id="comments">
+				{% for r in reviews %}
+					<div>
+						{{ r.user|stringformat:"s"}}
+						<pre>{{ r.text }}</pre>
+					</div>
+					<hr>
+				{% endfor %}
+			</div>
+		</div>
+	{% endif %}
+{% endblock %}
+
+{% block javascript %}
+	<script>
+	$(document).ready(function() {
+		{% if concert.concert_type == False %}
+			{% if user.get_username in attendees %}
+				$("#prihlasenie").hide();
+				$("#odhlasenie").show();
+			{% else %}
+				$("#odhlasenie").hide();
+				$("#prihlasenie").show();
+			{% endif %}
+
+			$("#prihlasenie_form").submit(function(e) {
+				e.preventDefault();
+				var btn = $(this).find("input[type=submit]");
+				$.ajax({
+					url: "{{ request.path }}",
+					data: $("#prihlasenie_form").serialize() 
+						+ "&" 
+						+ encodeURI(btn.attr("name")) 
+						+ "=" 
+						+ encodeURI(btn.attr("value")),
+					type: "POST",
+					success: function(result) {
+						$("#attendees_list").append('<li id="{{ user }}">{{ user }}</li>');
+						$("#prihlasenie").hide();
+						$("#odhlasenie").show();
+					}
+				});
+			});
+
+			$("#odhlasenie_form").submit(function(e) {
+				e.preventDefault();
+				var btn = $(this).find("input[type=submit]");
+				$.ajax({
+					url: "{{ request.path }}",
+					data: $("#odhlasenie_form").serialize() 
+						+ "&" 
+						+ encodeURI(btn.attr("name")) 
+						+ "=" 
+						+ encodeURI(btn.attr("value")),
+					type: "POST",
+					success: function(result) {
+						$("#attendees_list").find("#{{ user }}").remove();
+						$("#odhlasenie").hide();
+						$("#prihlasenie").show();
+					}
+				});
+			});
+
+		{% else %}
+			$("#add_review").hide();
+			$("#add_review_button").click(function() {
+				$("#add_review").show();
+				$("#add_review_button").hide();
+			});
+		{% endif %}
+	});
+	</script>
+{% endblock %}
