@@ -1,1 +1,2 @@
-# tia_projekt
+# Projekt - Manažovanie koncertov
+Frederik Koľbík
