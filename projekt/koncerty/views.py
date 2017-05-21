@@ -8,8 +8,9 @@ from .models import Concert, Attending, Review, Transfer
 from .forms import ConcertForm
 
 def zoznam(request):
-	concert_list = Concert.objects.all()
-	return render(request, "koncerty/zoznam.html", {'concert_list': concert_list})
+	concert_list_future = Concert.objects.filter(concert_type=False)
+	concert_list_past = Concert.objects.filter(concert_type=True)
+	return render(request, "koncerty/zoznam.html", {'concert_list_future': concert_list_future, 'concert_list_past': concert_list_past})
 
 def detail(request, concert_id):
 	concert = get_object_or_404(Concert, pk=concert_id)
@@ -36,6 +37,22 @@ def detail(request, concert_id):
 				Attending.objects.filter(concert=concert_id, user=request.POST["user_id"]).delete()
 				return JsonResponse({})
 
+			if "odvoz_prihlasenie" in request.POST:
+				transfer = get_object_or_404(Transfer, pk=request.POST["transfer_id"])
+				passenger = get_object_or_404(User, pk=request.POST["passenger"])
+				transfer.passengers.add(passenger)
+				transfer.seats_available = transfer.seats_available - 1
+				transfer.save()
+				return JsonResponse({})
+
+			if "odvoz_odhlasenie" in request.POST:
+				transfer = get_object_or_404(Transfer, pk=request.POST["transfer_id"])
+				passenger = get_object_or_404(User, pk=request.POST["passenger"])
+				transfer.passengers.remove(passenger)
+				transfer.seats_available = transfer.seats_available + 1
+				transfer.save()
+				return JsonResponse({})
+
 
 		if "recenzia" in request.POST:		
 			obj = Review()
@@ -44,6 +61,7 @@ def detail(request, concert_id):
 			obj.user = get_object_or_404(User, pk=request.POST["user_id"])
 			obj.save()
 			reviews = list(Review.objects.filter(concert=concert_id))
+			context = {'concert': concert, 'attendees': attendees, 'reviews': reviews, 'transfers': transfers}
 			return render(request, "koncerty/detail.html", context)
 
 		if "odvoz" in request.POST:
@@ -54,42 +72,37 @@ def detail(request, concert_id):
 			obj.seats_available = request.POST["seats_provided"]
 			obj.save()
 			transfers = list(Transfer.objects.filter(concert=concert_id))
+			context = {'concert': concert, 'attendees': attendees, 'reviews': reviews, 'transfers': transfers}
 			return render(request, "koncerty/detail.html", context)
 
-		if "odvoz_prihlasenie" in request.POST:
-			transfer = get_object_or_404(Transfer, pk=request.POST["transfer_id"])
-			passenger = get_object_or_404(User, pk=request.POST["passenger"])
-			transfer.passengers.add(passenger)
-			transfer.seats_available = transfer.seats_available - 1
-			transfer.save()
+		if "odvoz_zrusenie" in request.POST:
+			Transfer.objects.filter(concert=concert_id, pk=request.POST["transfer_id"]).delete()
 			transfers = list(Transfer.objects.filter(concert=concert_id))
+			context = {'concert': concert, 'attendees': attendees, 'reviews': reviews, 'transfers': transfers}
 			return render(request, "koncerty/detail.html", context)
 
-		if "odvoz_odhlasenie" in request.POST:
-			transfer = get_object_or_404(Transfer, pk=request.POST["transfer_id"])
-			passenger = get_object_or_404(User, pk=request.POST["passenger"])
-			transfer.passengers.remove(passenger)
-			transfer.seats_available = transfer.seats_available + 1
-			transfer.save()
-			transfers = list(Transfer.objects.filter(concert=concert_id))
-			return render(request, "koncerty/detail.html", context)
-	
 	return render(request, "koncerty/detail.html", context)
 
 def pridanie_koncertu(request):
 	if request.method == "POST":
 		form = ConcertForm(request.POST)
 		if form.is_valid():
-			obj = Concert()
-			obj.headliner = form.cleaned_data.get("headliner")
-			obj.support_bands = form.cleaned_data.get("support_bands")
-			obj.city = form.cleaned_data.get("city")
-			obj.venue = form.cleaned_data.get("venue")
-			obj.date = form.cleaned_data.get("date")
-			obj.time = form.cleaned_data.get("time")
-			obj.save()
+			form.save()
 			return HttpResponseRedirect("/koncerty/")
 	else:
 		form = ConcertForm()
 
 	return render(request, "koncerty/pridanie_koncertu.html", {'form': form})
+
+def editovanie_koncertu(request, concert_id):
+	concert = get_object_or_404(Concert, id=concert_id)
+	form = ConcertForm(request.POST or None, instance=concert)
+	if form.is_valid():
+		form.save()
+		return HttpResponseRedirect("/koncerty/")
+
+	return render(request, "koncerty/editovanie_koncertu.html", {'form': form})
+
+def zmazanie_koncertu(request, concert_id):
+	Concert.objects.filter(pk=concert_id).delete()
+	return HttpResponseRedirect("/koncerty/")
