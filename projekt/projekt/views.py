@@ -1,13 +1,14 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from .forms import RegistrationForm
+#from django.contrib.auth.forms import UserCreationForm
 
 def index(request):
 	return render(request, "projekt/index.html")
 
 def registracia(request):
 	if request.method == "POST":
-		form = UserCreationForm(request.POST)
+		form = RegistrationForm(request.POST)
 		if form.is_valid():
 			form.save()
 			username = form.cleaned_data.get("username")
@@ -16,6 +17,6 @@ def registracia(request):
 			login(request, user)
 			return redirect("index")
 	else:
-		form = UserCreationForm()
+		form = RegistrationForm()
 
 	return render(request, "registration/registracia.html", {'form': form})
