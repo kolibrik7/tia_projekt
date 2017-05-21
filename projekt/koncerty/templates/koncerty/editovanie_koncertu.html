@@ -5,9 +5,8 @@
 {% endblock %}
 
 {% block content %}
-	{% if user.is_authenticated %}
-
-		<h2>Pridávanie koncertu</h2>
+	<h2>Editovanie koncertu</h2>
+	{% if user.is_staff %}
 		{% load widget_tweaks %}
 		<form class="form-horizontal" role="form" method="post">
 			{% csrf_token %}
@@ -32,15 +31,11 @@
 			{% endfor %}
 			<div class="form-group">
 				<div class="col-sm-offset-2 col-sm-10">
-				<input type="submit" class="btn btn-primary" value="Pridať koncert" />
+				<input type="submit" class="btn btn-primary" value="Editovať koncert" />
 				</div>
 			</div>
 		</form>
-
 	{% else %}
-		<p>
-			Na túto akciu nemáte oprávnenie. Možno ste sa zabudli <a href="{% url 'login' %}">prihlásiť</a>?
-		</p>
+		Na túto akciu nemáte oprávnenie!
 	{% endif %}
-
 {% endblock %}
